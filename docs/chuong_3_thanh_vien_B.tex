@@ -32,6 +32,82 @@ Quy trình thu thập dữ liệu có thể tóm tắt qua các bước sau:
 
 Việc sử dụng dữ liệu thực tế từ thị trường chứng khoán Việt Nam giúp kết quả của đề tài có ý nghĩa ứng dụng cao hơn so với việc sử dụng các tập dữ liệu mô phỏng. Đồng thời, điều này cũng giúp quá trình đánh giá mô hình ANFIS, ARIMA và MLP phản ánh sát hơn với điều kiện thị trường thực tế.
 
+\subsection{Phân tích khám phá dữ liệu (EDA)}
+
+Trước khi tiến hành tiền xử lý và xây dựng đặc trưng kỹ thuật, đề tài thực hiện bước phân tích khám phá dữ liệu (Exploratory Data Analysis -- EDA) nhằm hiểu rõ hơn đặc điểm của chuỗi giá cổ phiếu, sự biến thiên của khối lượng giao dịch, mức độ tương quan giữa các biến cũng như phân phối của dữ liệu đầu vào. EDA được sử dụng như một bước trung gian quan trọng để kiểm tra chất lượng dữ liệu và cung cấp cơ sở thực nghiệm cho việc lựa chọn các phép biến đổi trong pipeline dữ liệu. Toàn bộ quá trình này được triển khai trong notebook \texttt{notebooks/eda.ipynb}.
+
+Trong phạm vi đề tài, EDA tập trung vào năm nhóm trực quan hóa chính: biến động giá đóng cửa theo thời gian, biến động khối lượng giao dịch, phân rã chuỗi thời gian, ma trận tương quan giữa các biến và phân phối của giá đóng cửa. Mỗi hình không chỉ mang tính minh họa mà còn đóng vai trò hỗ trợ giải thích cho các quyết định ở bước tiền xử lý và xây dựng đặc trưng kỹ thuật.
+
+\subsubsection{Biểu đồ giá đóng cửa theo thời gian}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/eda_close_price.png}
+    \caption{Biểu đồ giá đóng cửa của cổ phiếu theo thời gian.}
+    \label{fig:eda_close_price}
+\end{figure}
+
+Hình \ref{fig:eda_close_price} thể hiện diễn biến giá đóng cửa của cổ phiếu trong suốt giai đoạn nghiên cứu. Từ biểu đồ này có thể quan sát được xu hướng tăng, giảm và các pha điều chỉnh của giá theo thời gian. Thay vì dao động hoàn toàn ngẫu nhiên, chuỗi giá thường có xu hướng hình thành các giai đoạn biến động tương đối rõ ràng, phản ánh tác động của tâm lý thị trường, yếu tố vĩ mô và kết quả kinh doanh của doanh nghiệp.
+
+Ý nghĩa của biểu đồ này đối với bài toán dự báo là cho thấy dữ liệu mang tính chuỗi thời gian rõ rệt, do đó việc chia tập theo thứ tự thời gian là cần thiết để tránh rò rỉ thông tin. Đồng thời, sự xuất hiện của các xu hướng ngắn hạn và trung hạn cũng là cơ sở để đưa các đặc trưng như MA và MACD vào mô hình nhằm hỗ trợ nhận diện xu hướng giá.
+
+\subsubsection{Biểu đồ khối lượng giao dịch}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/eda_volume.png}
+    \caption{Biểu đồ khối lượng giao dịch theo thời gian.}
+    \label{fig:eda_volume}
+\end{figure}
+
+Hình \ref{fig:eda_volume} mô tả sự biến động của khối lượng giao dịch theo thời gian. Có thể thấy khối lượng giao dịch không ổn định giữa các giai đoạn mà thường xuất hiện những khoảng tăng mạnh hoặc giảm mạnh, phản ánh sự thay đổi về mức độ quan tâm và thanh khoản của thị trường đối với mã cổ phiếu đang xét.
+
+Về mặt phân tích dữ liệu, sự khác biệt lớn về biên độ của biến \texttt{volume} so với các biến giá cho thấy cần áp dụng một phương pháp chuẩn hóa riêng cho biến này. Đây cũng là lý do đề tài sử dụng Z-score cho \texttt{volume} thay vì chuẩn hóa đồng nhất như nhóm biến giá. Ngoài ra, biến động mạnh của khối lượng giao dịch còn cho thấy đây là một tín hiệu có thể hỗ trợ mô hình trong việc nhận diện các giai đoạn thị trường sôi động hoặc suy giảm thanh khoản.
+
+\subsubsection{Phân rã chuỗi thời gian}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/eda_seasonal_decomposition.png}
+    \caption{Kết quả phân rã chuỗi thời gian của giá đóng cửa.}
+    \label{fig:eda_decomposition}
+\end{figure}
+
+Hình \ref{fig:eda_decomposition} trình bày kết quả phân rã chuỗi thời gian của giá đóng cửa thành các thành phần xu hướng (trend), mùa vụ (seasonal) và nhiễu (residual). Việc phân tách này giúp người nghiên cứu nhận diện xem chuỗi dữ liệu chịu ảnh hưởng chủ yếu bởi xu hướng dài hạn hay bởi các dao động ngắn hạn lặp lại theo chu kỳ.
+
+Đối với bài toán dự báo giá cổ phiếu, phân rã chuỗi thời gian có ý nghĩa ở chỗ nó giúp làm rõ mức độ ổn định của xu hướng và mức độ nhiễu trong dữ liệu. Nếu thành phần xu hướng chiếm ưu thế, mô hình có thể tận dụng tốt các đặc trưng làm mượt như MA. Nếu thành phần nhiễu lớn, việc chuẩn hóa và lựa chọn đặc trưng kỹ thuật phù hợp càng trở nên cần thiết để cải thiện khả năng học của mô hình.
+
+\subsubsection{Ma trận tương quan giữa các biến}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/eda_correlation_heatmap.png}
+    \caption{Ma trận tương quan giữa các biến đầu vào và các chỉ báo kỹ thuật.}
+    \label{fig:eda_correlation}
+\end{figure}
+
+Hình \ref{fig:eda_correlation} cho thấy mức độ tương quan tuyến tính giữa các biến giá, khối lượng giao dịch và các chỉ báo kỹ thuật được tạo ra trong quá trình feature engineering. Ma trận này hỗ trợ xác định những cặp biến có liên hệ mạnh, đồng thời giúp quan sát xem các đặc trưng mới có thực sự bổ sung thông tin cho mô hình hay không.
+
+Thông thường, các biến \texttt{open}, \texttt{high}, \texttt{low} và \texttt{close} có tương quan cao với nhau do cùng phản ánh diễn biến giá trong một phiên giao dịch. Trong khi đó, các chỉ báo như RSI, MACD hay Bollinger Bands dù vẫn có liên hệ với giá đóng cửa nhưng phản ánh các khía cạnh khác nhau như động lượng, xu hướng và mức độ biến động. Vì vậy, ma trận tương quan là bằng chứng thực nghiệm cho thấy việc bổ sung đặc trưng kỹ thuật là hợp lý và có thể giúp mô hình khai thác tốt hơn bản chất của dữ liệu tài chính.
+
+\subsubsection{Phân phối của giá đóng cửa}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/eda_close_distribution.png}
+    \caption{Phân phối của giá đóng cửa.}
+    \label{fig:eda_distribution}
+\end{figure}
+
+Hình \ref{fig:eda_distribution} biểu diễn phân phối của giá đóng cửa thông qua histogram kết hợp đường mật độ. Từ biểu đồ này có thể đánh giá dữ liệu có tập trung quanh một vùng giá nhất định hay không, mức độ lệch của phân phối và khả năng tồn tại các giá trị nằm xa phần lớn quan sát còn lại.
+
+Phân tích phân phối dữ liệu giúp người nghiên cứu hiểu rõ hơn về đặc điểm thống kê của biến mục tiêu trước khi đưa vào mô hình. Nếu phân phối có độ lệch rõ rệt hoặc biên độ rộng, bước chuẩn hóa sẽ trở nên quan trọng để giúp mô hình học ổn định hơn. Đồng thời, việc hiểu phân phối của giá đóng cửa cũng giúp quá trình đánh giá kết quả dự báo có cơ sở thực tiễn hơn, đặc biệt khi so sánh sai số dự báo giữa các mô hình.
+
+\subsubsection{Nhận xét tổng hợp từ EDA}
+
+Từ các hình EDA có thể rút ra một số nhận định quan trọng. Thứ nhất, chuỗi giá cổ phiếu mang tính thời gian rõ rệt và có xu hướng biến động theo từng giai đoạn, do đó việc chia tập theo trục thời gian là hoàn toàn cần thiết. Thứ hai, khối lượng giao dịch biến động mạnh và khác biệt đáng kể về thang đo so với các biến giá, vì vậy cần chuẩn hóa riêng cho biến \texttt{volume}. Thứ ba, các đặc trưng kỹ thuật như MA, RSI, MACD và Bollinger Bands không chỉ có ý nghĩa về mặt tài chính mà còn có cơ sở thực nghiệm khi quan sát từ xu hướng, tương quan và mức độ biến động của dữ liệu.
+
+Như vậy, EDA không chỉ đóng vai trò mô tả dữ liệu mà còn là nền tảng hỗ trợ các quyết định quan trọng ở các bước tiếp theo, bao gồm làm sạch dữ liệu, chuẩn hóa dữ liệu, lựa chọn đặc trưng đầu vào và thiết kế pipeline xử lý cho bài toán dự báo giá cổ phiếu ngắn hạn.
 \section{Tiền xử lý dữ liệu}
 \label{sec:tien_xu_ly_du_lieu}
 
@@ -167,4 +243,8 @@ Bộ đặc trưng kỹ thuật MA, RSI, MACD và Bollinger Bands được lựa
 Việc sử dụng đặc trưng kỹ thuật cũng đặc biệt phù hợp với mô hình ANFIS vì hệ thống suy luận mờ có thể khai thác các quan hệ phi tuyến giữa các biến đầu vào. Đồng thời, các mô hình so sánh như MLP và ARIMA cũng hưởng lợi từ việc đầu vào được bổ sung thêm thông tin đã được biến đổi theo hướng có ý nghĩa tài chính.
 
 Tóm lại, quá trình xây dựng đặc trưng kỹ thuật không chỉ đơn thuần là mở rộng số lượng biến đầu vào mà còn giúp chuyển hóa dữ liệu giá thô thành các tín hiệu có ý nghĩa hơn đối với bài toán dự báo giá cổ phiếu ngắn hạn.
+
+
+
+
 
