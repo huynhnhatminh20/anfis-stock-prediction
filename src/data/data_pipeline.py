@@ -1,15 +1,14 @@
-"""End-to-end data pipeline for collection, feature engineering, and preprocessing."""
+﻿"""End-to-end data pipeline for collection, feature engineering, and preprocessing."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Optional
 
 import pandas as pd
 
 from .data_collector import DataCollector
-from .data_preprocessor import DataPreprocessor, SplitDataset
+from .data_preprocessor import DataPreprocessor
 from .feature_engineer import FeatureEngineer
 
 
@@ -26,7 +25,7 @@ class StockDataPipeline:
 
     def __init__(
         self,
-        source: str = "TCBS",
+        source: str = "VCI",
         raw_dir: Path = Path("data/raw"),
         processed_dir: Path = Path("data/processed"),
     ) -> None:
@@ -45,7 +44,13 @@ class StockDataPipeline:
         save_processed: bool = True,
     ) -> PipelineOutput:
         """Run full pipeline and return scaled train/val/test splits."""
-        raw_df = self.collector.fetch_symbol(symbol=symbol, start=start, end=end, interval=interval, save_csv=True)
+        raw_df = self.collector.fetch_symbol(
+            symbol=symbol,
+            start=start,
+            end=end,
+            interval=interval,
+            save_csv=True,
+        )
         return self.fit_transform_from_df(raw_df, symbol=symbol, save_processed=save_processed)
 
     def fit_transform_from_df(
@@ -61,8 +66,16 @@ class StockDataPipeline:
         split = self.preprocessor.split(scaled_df)
 
         if save_processed:
-            out_path = self.processed_dir / f"{symbol.upper()}_processed.csv"
-            scaled_df.to_csv(out_path, index=False)
+            symbol_name = symbol.upper()
+            full_path = self.processed_dir / f"{symbol_name}_processed.csv"
+            train_path = self.processed_dir / f"{symbol_name}_train.csv"
+            val_path = self.processed_dir / f"{symbol_name}_val.csv"
+            test_path = self.processed_dir / f"{symbol_name}_test.csv"
+
+            scaled_df.to_csv(full_path, index=False)
+            split.train.to_csv(train_path, index=False)
+            split.val.to_csv(val_path, index=False)
+            split.test.to_csv(test_path, index=False)
 
         return PipelineOutput(
             full=scaled_df,
@@ -75,3 +88,4 @@ class StockDataPipeline:
         """Convert scaled close predictions back to original price."""
         values = self.preprocessor.inverse_transform_close(scaled_close_series.to_numpy())
         return pd.Series(values, index=scaled_close_series.index, name="close_inverse")
+

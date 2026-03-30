@@ -1,4 +1,4 @@
-"""Data collection utilities for Vietnamese stock OHLCV data via vnstock."""
+﻿"""Data collection utilities for Vietnamese stock OHLCV data via vnstock."""
 
 from __future__ import annotations
 
@@ -9,14 +9,14 @@ from typing import Iterable, Optional
 import pandas as pd
 
 
-SUPPORTED_SOURCES = {"TCBS", "SSI"}
+SUPPORTED_SOURCES = {"KBS", "VCI", "MSN", "DNSE", "BINANCE", "FMP", "FMARKET"}
 
 
 @dataclass
 class DataCollector:
     """Collect OHLCV data from vnstock and persist raw CSV files."""
 
-    source: str = "TCBS"
+    source: str = "VCI"
     output_dir: Path = Path("data/raw")
 
     def __post_init__(self) -> None:
@@ -39,7 +39,7 @@ class DataCollector:
         except Exception as exc:  # pragma: no cover - optional dependency at runtime
             raise ImportError("vnstock is required. Install with: pip install vnstock") from exc
 
-        quote = Quote(symbol=symbol.upper(), source=self.source)
+        quote = Quote(symbol=symbol.upper(), source=self.source.lower())
         df = quote.history(start=start, end=end, interval=interval)
         if df is None or len(df) == 0:
             raise ValueError(f"No data returned for symbol={symbol}")
@@ -104,7 +104,7 @@ def collect_to_csv(
     symbol: str,
     start: str,
     end: str,
-    source: str = "TCBS",
+    source: str = "VCI",
     interval: str = "1d",
     output_dir: Optional[str] = None,
 ) -> Path:
