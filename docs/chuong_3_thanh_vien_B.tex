@@ -1,0 +1,250 @@
+﻿\chapter{Phương pháp và Dữ liệu}
+\label{chap:chuong3_b}
+
+\section{Nguồn dữ liệu}
+\label{sec:nguon_du_lieu}
+
+Trong đề tài này, dữ liệu đầu vào được thu thập từ thị trường chứng khoán Việt Nam thông qua thư viện \texttt{vnstock}. Đây là thư viện mã nguồn mở hỗ trợ truy xuất dữ liệu tài chính và chứng khoán Việt Nam bằng Python, cho phép lấy dữ liệu lịch sử của nhiều mã cổ phiếu niêm yết trên các sàn giao dịch lớn như HOSE và HNX. Việc sử dụng \texttt{vnstock} giúp quá trình thu thập dữ liệu được tự động hóa, dễ tái lập, thuận tiện cho nghiên cứu và phù hợp với yêu cầu xây dựng hệ thống dự báo bằng Python thay vì xử lý thủ công.
+
+Trong phạm vi đề tài, dữ liệu được lấy thông qua thư viện \texttt{vnstock} từ các nguồn dữ liệu tương thích với phiên bản thư viện đang sử dụng trong môi trường thực nghiệm, trong đó nguồn \texttt{VCI} được chọn để thu thập dữ liệu lịch sử theo chuỗi thời gian cho các mã cổ phiếu phổ biến trên thị trường Việt Nam. Các mã cổ phiếu có thể được sử dụng trong thực nghiệm bao gồm những mã có thanh khoản cao, mức độ quan tâm lớn và đại diện cho nhiều nhóm ngành khác nhau, ví dụ như VNM, ACB, VIC, HPG và một số mã khác thuộc HOSE hoặc HNX. Việc lựa chọn các mã này giúp tăng ý nghĩa thực tiễn của đề tài, đồng thời tạo điều kiện đánh giá mô hình trên nhiều bối cảnh biến động giá khác nhau.
+
+Dữ liệu được thu thập theo định dạng OHLCV, bao gồm các trường cơ bản như sau:
+\begin{itemize}
+    \item \texttt{date}: ngày giao dịch;
+    \item \texttt{open}: giá mở cửa;
+    \item \texttt{high}: giá cao nhất trong phiên;
+    \item \texttt{low}: giá thấp nhất trong phiên;
+    \item \texttt{close}: giá đóng cửa;
+    \item \texttt{volume}: khối lượng giao dịch.
+\end{itemize}
+
+Các biến trên phản ánh tương đối đầy đủ diễn biến giao dịch trong một phiên chứng khoán. Trong đó, giá đóng cửa thường được xem là biến quan trọng nhất vì phản ánh trạng thái cân bằng của thị trường tại thời điểm kết thúc phiên và thường được sử dụng làm mục tiêu dự báo trong các bài toán dự báo giá cổ phiếu ngắn hạn.
+
+Về mặt triển khai, chức năng thu thập dữ liệu được xây dựng trong file \texttt{src/data/data\_collector.py}. Module này được thiết kế dưới dạng lớp \texttt{DataCollector}, cho phép tải dữ liệu lịch sử cho một mã cổ phiếu hoặc nhiều mã cổ phiếu trong cùng một khoảng thời gian. Sau khi dữ liệu được tải về, hệ thống tiến hành chuẩn hóa tên cột, chuyển cột ngày về kiểu thời gian, sắp xếp dữ liệu theo thứ tự thời gian tăng dần và lưu lại dưới dạng tệp \texttt{CSV} trong thư mục \texttt{data/raw/}. Cách tổ chức này giúp tách biệt rõ giữa dữ liệu thô và dữ liệu đã qua xử lý, từ đó hỗ trợ tốt cho việc kiểm tra, tái sử dụng, truy vết nguồn dữ liệu và mở rộng nghiên cứu về sau.
+
+Quy trình thu thập dữ liệu có thể tóm tắt qua các bước sau:
+\begin{enumerate}
+    \item Lựa chọn mã cổ phiếu và khoảng thời gian nghiên cứu;
+    \item Gọi hàm lấy dữ liệu lịch sử thông qua \texttt{vnstock} với nguồn \texttt{VCI} tương thích với phiên bản thư viện trong môi trường thực nghiệm;
+    \item Chuẩn hóa lại cấu trúc bảng dữ liệu để thống nhất đầu vào;
+    \item Lưu dữ liệu gốc vào thư mục \texttt{data/raw/} làm cơ sở cho các bước xử lý tiếp theo.
+\end{enumerate}
+
+Việc sử dụng dữ liệu thực tế từ thị trường chứng khoán Việt Nam giúp kết quả của đề tài có ý nghĩa ứng dụng cao hơn so với việc sử dụng các tập dữ liệu mô phỏng. Đồng thời, điều này cũng giúp quá trình đánh giá mô hình ANFIS, ARIMA và MLP phản ánh sát hơn với điều kiện thị trường thực tế.
+
+\subsection{Phân tích khám phá dữ liệu (EDA)}
+
+Trước khi tiến hành tiền xử lý và xây dựng đặc trưng kỹ thuật, đề tài thực hiện bước phân tích khám phá dữ liệu (Exploratory Data Analysis -- EDA) nhằm hiểu rõ hơn đặc điểm của chuỗi giá cổ phiếu, sự biến thiên của khối lượng giao dịch, mức độ tương quan giữa các biến cũng như phân phối của dữ liệu đầu vào. EDA được sử dụng như một bước trung gian quan trọng để kiểm tra chất lượng dữ liệu và cung cấp cơ sở thực nghiệm cho việc lựa chọn các phép biến đổi trong pipeline dữ liệu. Toàn bộ quá trình này được triển khai trong notebook \texttt{notebooks/eda.ipynb}.
+
+Trong phạm vi đề tài, EDA tập trung vào năm nhóm trực quan hóa chính: biến động giá đóng cửa theo thời gian, biến động khối lượng giao dịch, phân rã chuỗi thời gian, ma trận tương quan giữa các biến và phân phối của giá đóng cửa. Mỗi hình không chỉ mang tính minh họa mà còn đóng vai trò hỗ trợ giải thích cho các quyết định ở bước tiền xử lý và xây dựng đặc trưng kỹ thuật.
+
+\subsubsection{Biểu đồ giá đóng cửa theo thời gian}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/eda_close_price.png}
+    \caption{Biểu đồ giá đóng cửa của cổ phiếu theo thời gian.}
+    \label{fig:eda_close_price}
+\end{figure}
+
+Hình \ref{fig:eda_close_price} thể hiện diễn biến giá đóng cửa của cổ phiếu trong suốt giai đoạn nghiên cứu. Từ biểu đồ này có thể quan sát được xu hướng tăng, giảm và các pha điều chỉnh của giá theo thời gian. Thay vì dao động hoàn toàn ngẫu nhiên, chuỗi giá thường có xu hướng hình thành các giai đoạn biến động tương đối rõ ràng, phản ánh tác động của tâm lý thị trường, yếu tố vĩ mô và kết quả kinh doanh của doanh nghiệp.
+
+Ý nghĩa của biểu đồ này đối với bài toán dự báo là cho thấy dữ liệu mang tính chuỗi thời gian rõ rệt, do đó việc chia tập theo thứ tự thời gian là cần thiết để tránh rò rỉ thông tin. Đồng thời, sự xuất hiện của các xu hướng ngắn hạn và trung hạn cũng là cơ sở để đưa các đặc trưng như MA và MACD vào mô hình nhằm hỗ trợ nhận diện xu hướng giá.
+
+\subsubsection{Biểu đồ khối lượng giao dịch}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/eda_volume.png}
+    \caption{Biểu đồ khối lượng giao dịch theo thời gian.}
+    \label{fig:eda_volume}
+\end{figure}
+
+Hình \ref{fig:eda_volume} mô tả sự biến động của khối lượng giao dịch theo thời gian. Có thể thấy khối lượng giao dịch không ổn định giữa các giai đoạn mà thường xuất hiện những khoảng tăng mạnh hoặc giảm mạnh, phản ánh sự thay đổi về mức độ quan tâm và thanh khoản của thị trường đối với mã cổ phiếu đang xét.
+
+Về mặt phân tích dữ liệu, sự khác biệt lớn về biên độ của biến \texttt{volume} so với các biến giá cho thấy cần áp dụng một phương pháp chuẩn hóa riêng cho biến này. Đây cũng là lý do đề tài sử dụng Z-score cho \texttt{volume} thay vì chuẩn hóa đồng nhất như nhóm biến giá. Ngoài ra, biến động mạnh của khối lượng giao dịch còn cho thấy đây là một tín hiệu có thể hỗ trợ mô hình trong việc nhận diện các giai đoạn thị trường sôi động hoặc suy giảm thanh khoản.
+
+\subsubsection{Phân rã chuỗi thời gian}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/eda_seasonal_decomposition.png}
+    \caption{Kết quả phân rã chuỗi thời gian của giá đóng cửa.}
+    \label{fig:eda_decomposition}
+\end{figure}
+
+Hình \ref{fig:eda_decomposition} trình bày kết quả phân rã chuỗi thời gian của giá đóng cửa thành các thành phần xu hướng (trend), mùa vụ (seasonal) và nhiễu (residual). Việc phân tách này giúp người nghiên cứu nhận diện xem chuỗi dữ liệu chịu ảnh hưởng chủ yếu bởi xu hướng dài hạn hay bởi các dao động ngắn hạn lặp lại theo chu kỳ.
+
+Đối với bài toán dự báo giá cổ phiếu, phân rã chuỗi thời gian có ý nghĩa ở chỗ nó giúp làm rõ mức độ ổn định của xu hướng và mức độ nhiễu trong dữ liệu. Nếu thành phần xu hướng chiếm ưu thế, mô hình có thể tận dụng tốt các đặc trưng làm mượt như MA. Nếu thành phần nhiễu lớn, việc chuẩn hóa và lựa chọn đặc trưng kỹ thuật phù hợp càng trở nên cần thiết để cải thiện khả năng học của mô hình.
+
+\subsubsection{Ma trận tương quan giữa các biến}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/eda_correlation_heatmap.png}
+    \caption{Ma trận tương quan giữa các biến đầu vào và các chỉ báo kỹ thuật.}
+    \label{fig:eda_correlation}
+\end{figure}
+
+Hình \ref{fig:eda_correlation} cho thấy mức độ tương quan tuyến tính giữa các biến giá, khối lượng giao dịch và các chỉ báo kỹ thuật được tạo ra trong quá trình feature engineering. Ma trận này hỗ trợ xác định những cặp biến có liên hệ mạnh, đồng thời giúp quan sát xem các đặc trưng mới có thực sự bổ sung thông tin cho mô hình hay không.
+
+Thông thường, các biến \texttt{open}, \texttt{high}, \texttt{low} và \texttt{close} có tương quan cao với nhau do cùng phản ánh diễn biến giá trong một phiên giao dịch. Trong khi đó, các chỉ báo như RSI, MACD hay Bollinger Bands dù vẫn có liên hệ với giá đóng cửa nhưng phản ánh các khía cạnh khác nhau như động lượng, xu hướng và mức độ biến động. Vì vậy, ma trận tương quan là bằng chứng thực nghiệm cho thấy việc bổ sung đặc trưng kỹ thuật là hợp lý và có thể giúp mô hình khai thác tốt hơn bản chất của dữ liệu tài chính.
+
+\subsubsection{Phân phối của giá đóng cửa}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/eda_close_distribution.png}
+    \caption{Phân phối của giá đóng cửa.}
+    \label{fig:eda_distribution}
+\end{figure}
+
+Hình \ref{fig:eda_distribution} biểu diễn phân phối của giá đóng cửa thông qua histogram kết hợp đường mật độ. Từ biểu đồ này có thể đánh giá dữ liệu có tập trung quanh một vùng giá nhất định hay không, mức độ lệch của phân phối và khả năng tồn tại các giá trị nằm xa phần lớn quan sát còn lại.
+
+Phân tích phân phối dữ liệu giúp người nghiên cứu hiểu rõ hơn về đặc điểm thống kê của biến mục tiêu trước khi đưa vào mô hình. Nếu phân phối có độ lệch rõ rệt hoặc biên độ rộng, bước chuẩn hóa sẽ trở nên quan trọng để giúp mô hình học ổn định hơn. Đồng thời, việc hiểu phân phối của giá đóng cửa cũng giúp quá trình đánh giá kết quả dự báo có cơ sở thực tiễn hơn, đặc biệt khi so sánh sai số dự báo giữa các mô hình.
+
+\subsubsection{Nhận xét tổng hợp từ EDA}
+
+Từ các hình EDA có thể rút ra một số nhận định quan trọng. Thứ nhất, chuỗi giá cổ phiếu mang tính thời gian rõ rệt và có xu hướng biến động theo từng giai đoạn, do đó việc chia tập theo trục thời gian là hoàn toàn cần thiết. Thứ hai, khối lượng giao dịch biến động mạnh và khác biệt đáng kể về thang đo so với các biến giá, vì vậy cần chuẩn hóa riêng cho biến \texttt{volume}. Thứ ba, các đặc trưng kỹ thuật như MA, RSI, MACD và Bollinger Bands không chỉ có ý nghĩa về mặt tài chính mà còn có cơ sở thực nghiệm khi quan sát từ xu hướng, tương quan và mức độ biến động của dữ liệu.
+
+Như vậy, EDA không chỉ đóng vai trò mô tả dữ liệu mà còn là nền tảng hỗ trợ các quyết định quan trọng ở các bước tiếp theo, bao gồm làm sạch dữ liệu, chuẩn hóa dữ liệu, lựa chọn đặc trưng đầu vào và thiết kế pipeline xử lý cho bài toán dự báo giá cổ phiếu ngắn hạn.
+\section{Tiền xử lý dữ liệu}
+\label{sec:tien_xu_ly_du_lieu}
+
+Dữ liệu tài chính dạng chuỗi thời gian thường chứa nhiều vấn đề có thể ảnh hưởng trực tiếp đến chất lượng dự báo, chẳng hạn như giá trị thiếu, nhiễu, khác biệt về thang đo giữa các biến và nguy cơ rò rỉ thông tin nếu chia dữ liệu không đúng theo trục thời gian. Vì vậy, tiền xử lý dữ liệu là bước có vai trò đặc biệt quan trọng, giúp tạo ra bộ dữ liệu sạch, nhất quán và phù hợp để huấn luyện các mô hình học máy.
+
+Nội dung này được triển khai trong file \texttt{src/data/data\_preprocessor.py} thông qua lớp \texttt{DataPreprocessor}. Quy trình tiền xử lý trong đề tài bao gồm ba nhóm công việc chính: xử lý giá trị thiếu, chuẩn hóa dữ liệu và tách tập dữ liệu thành train/validation/test theo thứ tự thời gian.
+
+\subsection{Xử lý giá trị thiếu}
+
+Trong dữ liệu chứng khoán, giá trị thiếu có thể xuất hiện do sai lệch giữa các nguồn dữ liệu, lỗi đồng bộ, hoặc phát sinh sau bước tạo đặc trưng kỹ thuật khi cửa sổ tính toán chưa đủ số phiên. Nếu không xử lý phù hợp, các giá trị thiếu này có thể gây lỗi trong quá trình huấn luyện mô hình hoặc làm sai lệch kết quả dự báo.
+
+Đề tài sử dụng phương pháp \textit{forward fill} để điền các giá trị thiếu dựa trên quan sát hợp lệ gần nhất trước đó. Phương pháp này phù hợp với dữ liệu chuỗi thời gian vì vẫn bảo toàn được tính liên tục tương đối của diễn biến giá. Trong trường hợp các phần tử đầu chuỗi vẫn còn thiếu sau bước điền tiến, hệ thống sử dụng thêm \textit{backfill} để điền nốt các giá trị còn trống. Nhờ đó, bộ dữ liệu sau xử lý không còn phần tử rỗng trước khi chuyển sang giai đoạn chuẩn hóa.
+
+Cách tiếp cận này có ưu điểm là giữ lại được tối đa số lượng quan sát, hạn chế việc loại bỏ nhiều dòng dữ liệu và phù hợp với các bộ dữ liệu tài chính có tính liên tục theo thời gian.
+
+\subsection{Chuẩn hóa dữ liệu}
+
+Một trong những đặc điểm của dữ liệu tài chính là các biến đầu vào có thang đo rất khác nhau. Chẳng hạn, các biến giá \texttt{open}, \texttt{high}, \texttt{low}, \texttt{close} thường nằm trong một khoảng giá trị nhất định, trong khi biến \texttt{volume} có thể lớn hơn rất nhiều về độ lớn tuyệt đối. Nếu đưa trực tiếp các biến này vào mô hình, các biến có biên độ lớn sẽ dễ chi phối quá trình học, làm giảm hiệu quả hội tụ và ảnh hưởng đến khả năng học của mô hình.
+
+Để khắc phục vấn đề đó, đề tài áp dụng hai phương pháp chuẩn hóa khác nhau cho hai nhóm biến:
+\begin{itemize}
+    \item Các biến giá \texttt{open}, \texttt{high}, \texttt{low}, \texttt{close} được chuẩn hóa bằng \texttt{MinMaxScaler}, đưa giá trị về khoảng $[0,1]$;
+    \item Biến \texttt{volume} được chuẩn hóa bằng phương pháp Z-score thông qua \texttt{StandardScaler}.
+\end{itemize}
+
+Công thức chuẩn hóa Min-Max được xác định như sau:
+\begin{equation}
+    x' = \frac{x - x_{\min}}{x_{\max} - x_{\min}}
+\end{equation}
+
+Trong đó, $x$ là giá trị gốc, còn $x_{\min}$ và $x_{\max}$ lần lượt là giá trị nhỏ nhất và lớn nhất của biến trong tập dữ liệu dùng để chuẩn hóa.
+
+Đối với biến khối lượng giao dịch, công thức Z-score được sử dụng như sau:
+\begin{equation}
+    z = \frac{x - \mu}{\sigma}
+\end{equation}
+
+Trong đó, $\mu$ là giá trị trung bình và $\sigma$ là độ lệch chuẩn của biến. Phương pháp này giúp đưa dữ liệu về dạng có trung bình bằng 0 và độ lệch chuẩn bằng 1, từ đó làm giảm ảnh hưởng của độ lớn tuyệt đối của khối lượng giao dịch.
+
+Việc chuẩn hóa dữ liệu mang lại nhiều lợi ích: giúp quá trình huấn luyện ổn định hơn, tăng tốc độ hội tụ của mô hình và làm cho các biến đầu vào có mức độ ảnh hưởng cân bằng hơn. Ngoài ra, trong file \texttt{data\_preprocessor.py}, hệ thống còn xây dựng hàm \texttt{inverse\_transform\_close()} nhằm biến đổi ngược giá đóng cửa từ miền chuẩn hóa về miền giá trị thực. Điều này rất cần thiết trong giai đoạn đánh giá vì các chỉ số như MAE, RMSE và MAPE cần được diễn giải trên thang đo gốc của giá cổ phiếu.
+
+\subsection{Tách tập dữ liệu}
+
+Do đề tài thuộc nhóm bài toán dự báo chuỗi thời gian, dữ liệu không được phép chia ngẫu nhiên như trong các bài toán phân loại hay hồi quy thông thường. Nếu trộn ngẫu nhiên dữ liệu trước khi chia tập, mô hình có thể vô tình học từ những quan sát thuộc tương lai, từ đó gây ra hiện tượng rò rỉ thông tin và làm cho kết quả đánh giá không còn đáng tin cậy.
+
+Vì lý do đó, đề tài áp dụng phương pháp chia dữ liệu theo đúng thứ tự thời gian với tỉ lệ:
+\begin{itemize}
+    \item $70\%$ đầu tiên dùng làm tập huấn luyện;
+    \item $15\%$ tiếp theo dùng làm tập xác thực;
+    \item $15\%$ cuối cùng dùng làm tập kiểm thử.
+\end{itemize}
+
+Cách chia này đảm bảo mô hình chỉ được học trên dữ liệu quá khứ, sau đó được tinh chỉnh trên tập xác thực và cuối cùng được đánh giá trên tập kiểm thử là dữ liệu xuất hiện sau cùng trong chuỗi thời gian. Nhờ đó, việc đánh giá khả năng dự báo sẽ gần với tình huống ứng dụng thực tế hơn.
+
+Tóm lại, quy trình tiền xử lý trong đề tài được xây dựng theo hướng vừa đảm bảo chất lượng dữ liệu đầu vào, vừa bảo toàn đặc trưng của bài toán chuỗi thời gian, qua đó tạo nền tảng ổn định cho các mô hình dự báo ở các bước tiếp theo.
+
+\section{Đặc trưng kỹ thuật}
+\label{sec:dac_trung_ky_thuat}
+
+Bên cạnh các biến gốc của dữ liệu OHLCV, đề tài sử dụng thêm các chỉ báo phân tích kỹ thuật nhằm tăng cường lượng thông tin đầu vào cho mô hình. Các chỉ báo này cho phép mô hình không chỉ nhìn thấy giá trị hiện tại của cổ phiếu mà còn nhận diện được xu hướng, động lượng và mức độ biến động của thị trường trong những khoảng thời gian khác nhau.
+
+Phần trích xuất đặc trưng được triển khai trong file \texttt{src/data/feature\_engineer.py} thông qua lớp \texttt{FeatureEngineer}. Theo yêu cầu của đề tài, bộ đặc trưng kỹ thuật bao gồm: đường trung bình động MA, chỉ báo RSI, chỉ báo MACD và dải Bollinger Bands.
+
+\subsection{Đường trung bình động MA}
+
+Đường trung bình động (Moving Average -- MA) là một trong những chỉ báo kỹ thuật cơ bản và phổ biến nhất trong phân tích chuỗi giá. MA giúp làm mượt chuỗi dữ liệu, giảm bớt nhiễu ngắn hạn và hỗ trợ nhận diện xu hướng chung của giá cổ phiếu.
+
+Trong đề tài, hai đặc trưng được sử dụng là MA5 và MA20, tương ứng với trung bình động 5 phiên và 20 phiên. Công thức chung của MA được xác định như sau:
+\begin{equation}
+    MA_n(t) = \frac{1}{n} \sum_{i=0}^{n-1} Close_{t-i}
+\end{equation}
+
+Trong đó, $n$ là số phiên quan sát và $Close_{t-i}$ là giá đóng cửa tại thời điểm trước đó. MA5 phản ánh xu hướng ngắn hạn của giá cổ phiếu, còn MA20 biểu diễn xu hướng trung hạn. Khi kết hợp hai đặc trưng này, mô hình có thể nhận diện tốt hơn sự thay đổi của xu hướng giá theo nhiều mức thời gian khác nhau.
+
+Về mặt ý nghĩa, nếu giá đóng cửa hiện tại nằm trên đường MA, cổ phiếu có thể đang ở trạng thái tăng tương đối trong ngắn hạn hoặc trung hạn. Ngược lại, khi giá nằm dưới đường MA, thị trường có thể đang ở trạng thái suy giảm. Vì vậy, MA không chỉ là một đặc trưng làm mượt dữ liệu mà còn mang thông tin xu hướng quan trọng đối với bài toán dự báo.
+
+\subsection{Chỉ báo RSI}
+
+RSI (Relative Strength Index) là chỉ báo đo lường cường độ tương đối giữa các phiên tăng giá và giảm giá trong một khoảng thời gian xác định. Chỉ báo này thường được sử dụng để phát hiện các trạng thái quá mua (overbought) hoặc quá bán (oversold) trên thị trường.
+
+Trong đề tài, RSI được tính với chu kỳ 14 phiên theo công thức của Wilder:
+\begin{equation}
+    RSI = 100 - \frac{100}{1 + RS}
+\end{equation}
+
+trong đó:
+\begin{equation}
+    RS = \frac{\text{Average Gain}}{\text{Average Loss}}
+\end{equation}
+
+Giá trị RSI thường nằm trong khoảng từ 0 đến 100. Khi RSI tăng cao, điều đó cho thấy lực mua đang chiếm ưu thế; ngược lại, RSI thấp phản ánh áp lực bán mạnh hơn. Trong thực tế, RSI trên 70 thường được xem là tín hiệu quá mua, còn RSI dưới 30 thường được xem là tín hiệu quá bán.
+
+Ý nghĩa của RSI trong bài toán dự báo là giúp mô hình hiểu được động lượng của giá thay vì chỉ quan sát mức giá tuyệt đối. Nhờ vậy, mô hình có thể nhận biết tốt hơn các giai đoạn thị trường tăng nóng, giảm sâu hoặc có khả năng đảo chiều ngắn hạn.
+
+\subsection{Chỉ báo MACD}
+
+MACD (Moving Average Convergence Divergence) là chỉ báo động lượng được sử dụng rộng rãi để đánh giá xu hướng và sức mạnh của xu hướng giá. Chỉ báo này được xây dựng từ hiệu giữa hai đường trung bình động hàm mũ (EMA) với chu kỳ khác nhau.
+
+Trong đề tài, MACD được tính theo công thức:
+\begin{equation}
+    MACD = EMA_{12} - EMA_{26}
+\end{equation}
+
+Trong đó, $EMA_{12}$ và $EMA_{26}$ lần lượt là trung bình động hàm mũ 12 phiên và 26 phiên. Ngoài giá trị MACD chính, đề tài còn tính thêm hai thành phần phụ trợ:
+\begin{itemize}
+    \item \texttt{macd\_signal}: đường tín hiệu, là EMA 9 phiên của MACD;
+    \item \texttt{macd\_hist}: histogram, là hiệu giữa MACD và đường tín hiệu.
+\end{itemize}
+
+Về ý nghĩa, MACD giúp phản ánh sự hội tụ hoặc phân kỳ giữa hai xu hướng trung bình của giá. Khi MACD tăng và cắt lên trên đường tín hiệu, đó thường được xem là dấu hiệu tích cực về động lượng tăng. Ngược lại, khi MACD giảm và cắt xuống dưới đường tín hiệu, xu hướng giảm có thể đang mạnh lên. Histogram của MACD cũng giúp đánh giá tốc độ thay đổi của động lượng giá, từ đó cung cấp thêm tín hiệu hữu ích cho mô hình dự báo ngắn hạn.
+
+\subsection{Dải Bollinger Bands}
+
+Bollinger Bands là chỉ báo đo lường mức độ biến động của giá cổ phiếu dựa trên đường trung bình động và độ lệch chuẩn. Trong đề tài, Bollinger Bands được xây dựng từ MA20 và độ lệch chuẩn của giá đóng cửa trong cửa sổ 20 phiên, theo các công thức:
+\begin{equation}
+    BB_{mid} = MA_{20}
+\end{equation}
+\begin{equation}
+    BB_{upper} = MA_{20} + 2\sigma
+\end{equation}
+\begin{equation}
+    BB_{lower} = MA_{20} - 2\sigma
+\end{equation}
+
+Trong đó, $\sigma$ là độ lệch chuẩn của giá đóng cửa trong 20 phiên gần nhất. Dải giữa thể hiện xu hướng trung bình, còn dải trên và dải dưới biểu diễn mức dao động kỳ vọng của giá quanh xu hướng đó.
+
+Ý nghĩa của Bollinger Bands là giúp mô hình nhận biết trạng thái biến động mạnh hay yếu của thị trường. Khi hai dải mở rộng, điều đó cho thấy độ biến động đang tăng. Khi hai dải thu hẹp, thị trường có thể đang trong giai đoạn tích lũy hoặc biến động thấp. Ngoài ra, vị trí của giá đóng cửa so với dải trên hoặc dải dưới cũng cung cấp thêm tín hiệu về khả năng giá đang ở vùng cao hoặc vùng thấp tương đối trong ngắn hạn.
+
+\subsection{Vai trò của bộ đặc trưng kỹ thuật}
+
+Bộ đặc trưng kỹ thuật MA, RSI, MACD và Bollinger Bands được lựa chọn vì chúng đại diện cho những khía cạnh quan trọng nhất của chuỗi giá cổ phiếu, bao gồm xu hướng, động lượng và mức độ biến động. Khi kết hợp với dữ liệu OHLCV gốc, các chỉ báo này giúp mô hình học được nhiều thông tin hơn về trạng thái thị trường tại từng thời điểm.
+
+Việc sử dụng đặc trưng kỹ thuật cũng đặc biệt phù hợp với mô hình ANFIS vì hệ thống suy luận mờ có thể khai thác các quan hệ phi tuyến giữa các biến đầu vào. Đồng thời, các mô hình so sánh như MLP và ARIMA cũng hưởng lợi từ việc đầu vào được bổ sung thêm thông tin đã được biến đổi theo hướng có ý nghĩa tài chính.
+
+Tóm lại, quá trình xây dựng đặc trưng kỹ thuật không chỉ đơn thuần là mở rộng số lượng biến đầu vào mà còn giúp chuyển hóa dữ liệu giá thô thành các tín hiệu có ý nghĩa hơn đối với bài toán dự báo giá cổ phiếu ngắn hạn.
+
+
+
+
+
