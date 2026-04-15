@@ -30,6 +30,13 @@ class StockMLP(nn.Module):
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.network(x)
+    
+    def predict(self, x: torch.Tensor) -> torch.Tensor:
+        """Dự báo giá trị đầu ra (ở chế độ evaluation)."""
+        self.eval() # Chuyển sang chế độ evaluation (tắt dropout/batchnorm nếu có)
+        with torch.no_grad(): # Tắt tính toán gradient để tiết kiệm bộ nhớ
+            return self.forward(x)
+
 
 def train_mlp_with_early_stopping(
     model: nn.Module, 
