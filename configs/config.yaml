@@ -1,0 +1,42 @@
+dataset:
+  symbol: VNM
+  start_date: "2020-01-01"
+  end_date: "2026-03-30"
+  interval: "1d"
+  source: VCI
+  target_column: close
+  feature_columns:
+    - open
+    - high
+    - low
+    - close
+    - volume
+    - ma5
+    - ma20
+    - rsi14
+    - macd
+    - macd_signal
+    - macd_hist
+    - bb_mid
+    - bb_upper
+    - bb_lower
+
+anfis:
+  input_dim: 4
+  num_memberships: 2
+  learning_rate: 0.01
+  epochs: 40
+  batch_size: 16
+  patience: 8
+  min_delta: 0.0001
+  membership_type: gaussian
+  use_hybrid_learning: true
+  l2_weight_decay: 0.0
+  random_seed: 42
+
+evaluation:
+  metrics:
+    - mae
+    - rmse
+    - mape
+  significance_level: 0.05
