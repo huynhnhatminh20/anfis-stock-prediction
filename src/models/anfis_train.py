@@ -61,26 +61,33 @@ class AnfisTrainer:
         stopped_early = False
 
         for epoch in range(self.config.epochs):
-            if self.config.use_hybrid_learning:
-                model.solve_consequents(train_features, train_targets)
-
             model.train()
             epoch_losses: list[float] = []
+            
             for batch_features, batch_targets in train_loader:
+                batch_targets_2d = _ensure_2d(batch_targets)
+                
+                # BƯỚC 1: Forward Pass (Cập nhật hệ quả bằng LSE)
+                if self.config.use_hybrid_learning:
+                    # Tắt gradient khi giải phương trình LSE
+                    with torch.no_grad():
+                        model.solve_consequents(batch_features, batch_targets_2d)
+
+                # BƯỚC 2: Backward Pass (Cập nhật tiền đề bằng Gradient Descent)
                 optimizer.zero_grad()
                 predictions = model(batch_features)
-                loss = criterion(predictions, _ensure_2d(batch_targets))
+                loss = criterion(predictions, batch_targets_2d)
                 loss.backward()
                 optimizer.step()
+                
                 epoch_losses.append(loss.item())
 
             train_loss = float(sum(epoch_losses) / max(1, len(epoch_losses)))
             train_losses.append(train_loss)
 
+            # Đánh giá Validation (KHÔNG GỌI solve_consequents ở đây)
             val_loss = train_loss
             if val_features is not None and val_targets is not None:
-                if self.config.use_hybrid_learning:
-                    model.solve_consequents(train_features, train_targets)
                 val_loss = self.evaluate(model, val_features, val_targets)
             val_losses.append(val_loss)
 
