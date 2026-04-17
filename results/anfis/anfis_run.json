@@ -1,0 +1,51 @@
+{
+  "config_path": "D:\\SGU\\anfis-stock-prediction\\configs\\config.yaml",
+  "raw_csv": "D:\\SGU\\anfis-stock-prediction\\data\\raw\\VNM_2020-01-01_2026-03-30_1d.csv",
+  "feature_columns": [
+    "open",
+    "high",
+    "low",
+    "volume",
+    "ma5",
+    "ma20",
+    "rsi14",
+    "macd",
+    "macd_signal",
+    "macd_hist",
+    "bb_mid",
+    "bb_upper",
+    "bb_lower"
+  ],
+  "num_features": 13,
+  "num_rules": 8192,
+  "best_epoch": 0,
+  "best_val_loss": 0.08845868706703186,
+  "stopped_early": true,
+  "history": {
+    "train_losses": [
+      0.2526261414020834,
+      0.2510717742040124,
+      0.2513448522544243,
+      0.25166530907154083,
+      0.25101882135364373,
+      0.2516748783454089,
+      0.25105822422135043,
+      0.25060681998729706,
+      0.25113531212571644
+    ],
+    "val_losses": [
+      0.08845868706703186,
+      0.08845868706703186,
+      0.08845868706703186,
+      0.08845868706703186,
+      0.08845868706703186,
+      0.08845868706703186,
+      0.08845868706703186,
+      0.08845868706703186,
+      0.08845868706703186
+    ],
+    "best_val_loss": 0.08845868706703186,
+    "best_epoch": 0,
+    "stopped_early": true
+  }
+}
