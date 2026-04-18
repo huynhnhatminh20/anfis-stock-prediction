@@ -22,17 +22,33 @@ from src.visualization.visualizer import Visualizer
 st.set_page_config(page_title="ANFIS Stock Pro", page_icon="📈", layout="wide")
 
 st.markdown("""
-    <style>
-    html, body, [class*="css"] { font-family: 'Helvetica Neue', Arial, sans-serif; }
-    [data-testid="stSidebar"] { background-color: #f8f9fa; border-right: 1px solid #dee2e6; }
-    .stPlotlyChart { border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); background: white; padding: 10px; }
-    div.stButton > button:first-child { 
-        background-color: #007bff; color: white; border-radius: 10px; 
-        width: 100%; font-weight: bold; border: none; height: 3em;
+<style>
+    /* Bo khung cho tất cả các Widget ở Sidebar (Selectbox, Radio, Slider) */
+    [data-testid="stSidebarUserContent"] .stSelectbox, 
+    [data-testid="stSidebarUserContent"] .stRadio,
+    [data-testid="stSidebarUserContent"] .stSlider {
+        background-color: white; /* Nền trắng để nổi bật trên nền xám của Sidebar */
+        border: 1px solid #d1d5db; /* Đường viền xám nhạt */
+        border-radius: 10px; /* Bo góc */
+        padding: 15px; /* Tạo khoảng trống bên trong khung */
+        margin-bottom: 20px; /* Khoảng cách giữa các box */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.03); /* Đổ bóng cực nhẹ cho sang */
     }
-    div.stButton > button:first-child:hover { background-color: #0056b3; }
-    </style>
-    """, unsafe_allow_html=True)
+
+    /* Tùy chỉnh riêng cho tiêu đề của Widget bên trong khung */
+    [data-testid="stSidebarUserContent"] label {
+        color: #1a202c !important;
+        font-weight: 600 !important;
+        margin-bottom: 10px !important;
+    }
+
+    /* Hiệu ứng khi di chuột qua khung viền sẽ đậm hơn */
+    [data-testid="stSidebarUserContent"] .stSelectbox:hover {
+        border-color: #2E86C1;
+        transition: 0.3s;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # ==========================================
 # 2. HÀM LOAD TÀI NGUYÊN & DỮ LIỆU
@@ -57,7 +73,6 @@ def load_models():
 
 def load_stock_data(ticker):
     # Đường dẫn tới file thô (Raw) để lấy giá tiền thật
-    # Bạn hãy kiểm tra lại đường dẫn này có đúng là 'data/raw/' không nhé
     raw_path = f"data/raw/VNM_2020-01-01_2026-03-30_1d.csv" 
     test_path = f"data/processed/{ticker}_test.csv"
     
@@ -96,16 +111,25 @@ def load_stock_data(ticker):
 # 3. GIAO DIỆN CHÍNH
 # ==========================================
 def main():
-    st.title("📈 ANFIS Stock Forecasting Dashboard")
-    st.write("**Nhóm:** Hải, Minh, Nhân, Minh | **Dự báo giá trị thực (VNĐ)**")
+    st.title("👨‍💻 ANFIS Stock Forecast Pro")
     
     # Sidebar
-    st.sidebar.header("⚙️ Cấu hình")
-    ticker = st.sidebar.selectbox("Mã Cổ phiếu", ["VNM", "ACB", "VIC", "HPG", "FPT"])
-    model_choice = st.sidebar.radio("Mô hình", ["ANFIS (Lai ghép)", "ARIMA (Thống kê)", "MLP (Deep Learning)"])
-    forecast_days = st.sidebar.slider("Số ngày dự báo", 1, 10, 3)
+    st.sidebar.markdown("### 🛠️ Bảng Điều Khiển")
+    
+    # Mỗi widget này bây giờ sẽ tự động được bọc trong một box trắng có viền
+    ticker = st.sidebar.selectbox("📈 Mã Cổ phiếu", ["VNM", "ACB", "VIC", "HPG", "FPT"])
+    
+    model_choice = st.sidebar.radio("🤖 Chọn Mô hình", ["ANFIS (Lai ghép)", "ARIMA (Thống kê)", "MLP (Deep Learning)"])
+    
+    forecast_days = st.sidebar.slider("📅 Số ngày dự báo", 1, 10, 3)
+    
+    # Nút bấm bên dưới các khung viền
+    run_btn = st.sidebar.button("🚀 Thực thi Dự báo")
+
+
+
     show_arch = st.sidebar.checkbox("Hiển thị kiến trúc ANFIS")
-    run_btn = st.sidebar.button("🚀 THỰC THI DỰ BÁO")
+
 
     if show_arch:
         with st.expander("Sơ đồ kiến trúc ANFIS 5 lớp", expanded=True):
@@ -166,12 +190,12 @@ def main():
             fig.add_trace(go.Scatter(x=f_x, y=f_y, name='Dự báo', line=dict(color='#E74C3C', width=3, dash='dash')))
             
             # Nón Monte Carlo
-            for _ in range(15):
-                path = [actual_real[-1]]
-                for j in range(forecast_days):
-                    noise = np.random.normal(0, 0.015 * np.sqrt(j + 1))
-                    path.append(f_y[j+1] * (1 + noise))
-                fig.add_trace(go.Scatter(x=f_x, y=path, mode='lines', line=dict(color='gray', width=1), opacity=0.1, showlegend=False))
+            #'''for _ in range(5):
+            #    path = [actual_real[-1]]
+            #    for j in range(forecast_days):
+            #        noise = np.random.normal(0, 0.015 * np.sqrt(j + 1))
+            #        path.append(f_y[j+1] * (1 + noise))
+            #    fig.add_trace(go.Scatter(x=f_x, y=path, mode='lines', line=dict(color='black', width=1), opacity=0.1, showlegend=False))'''
 
             fig.update_layout(template="plotly_white", title=f"Giá {ticker} (VNĐ)", hovermode="x unified")
             st.plotly_chart(fig, use_container_width=True)
